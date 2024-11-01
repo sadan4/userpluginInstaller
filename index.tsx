@@ -1,8 +1,8 @@
 import { Notices } from "@api/index";
-import { addAccessory } from "@api/MessageAccessories";
+import { addAccessory, removeAccessory } from "@api/MessageAccessories";
 import { Devs } from "@utils/constants";
 import definePlugin, { PluginNative } from "@utils/types";
-import { Button, ChannelStore, Forms, Toasts } from "@webpack/common";
+import { Alerts, Button, ChannelStore, Forms, TextInput, Toasts, Text } from "@webpack/common";
 import { Message } from "discord-types/general";
 import { clone } from "lodash";
 import UserpluginInstallButton from "./UserpluginInstallButton";
@@ -24,7 +24,7 @@ export async function clonePlugin(gitLink: RegExpMatchArray) {
     });
     try {
         const path = `${VesktopNative.fileManager.getVencordDir().replace("\\", "/")}/../src/userplugins/${gitLink[1]}`;
-        const clonedRepo = await Native.cloneRepo(gitLink[0], path);
+        await Native.cloneRepo(gitLink[0], path);
         const meta = await Native.getPluginMeta(path);
         console.log(meta);
         showInstallModal(meta, path);
@@ -49,5 +49,63 @@ export default definePlugin({
         addAccessory("userpluginInstallButton", (props: Record<string, any>) => (
             <UserpluginInstallButton props={props} />
         ), 4);
+    },
+    stop() {
+        removeAccessory("userpluginInstallButton");
+    },
+    toolboxActions: {
+        "Install Plugin": () => {
+            let gitUrl = "";
+            Alerts.show({
+                title: "Install plugin",
+                body: <>
+                    <TextInput onChange={v => { gitUrl = v; }} placeholder="Git link (https://github.com/...)" />
+                </>,
+                confirmText: "Install",
+                onConfirm() {
+                    const fullGitLink = gitUrl.match(CLONE_LINK_REGEX);
+                    if (!fullGitLink) return;
+                    clonePlugin(fullGitLink);
+                }
+            });
+        },
+        "Uninstall Plugin": () => {
+            let name = "";
+            Alerts.show({
+                title: "Uninstall plugin",
+                body: <>
+                    <Text>Out of these plugins, which would you like to uninstall?</Text>
+                    {
+                        plugins.map((item, i) =>
+                            <Text style={{ fontWeight: "bold" }}>{item}</Text>
+                        )
+                    }
+                    <TextInput onChange={v => { name = v; }} style={{ marginTop: "10px" }} placeholder="Plugin name as written above" />
+                </>,
+                confirmText: "Uninstall",
+                confirmColor: Button.Colors.RED,
+                async onConfirm() {
+                    if (!plugins.includes(name)) return;
+                    Toasts.show({
+                        id: Toasts.genId(),
+                        message: `Uninstalling ${name}...`,
+                        type: Toasts.Type.MESSAGE
+                    });
+                    try {
+                        await Native.deleteFolder(`${VesktopNative.fileManager.getVencordDir().replace("\\", "/")}/../src/userplugins/${name}`);
+                        await Native.build(VesktopNative.fileManager.getVencordDir().replace("\\", "/"));
+                        window.location.reload();
+                    }
+                    catch {
+                        Toasts.pop();
+                        return Toasts.show({
+                            message: "Something bad has happened while deleting the plugin.",
+                            id: Toasts.genId(),
+                            type: Toasts.Type.FAILURE
+                        });
+                    }
+                }
+            });
+        }
     }
 });
