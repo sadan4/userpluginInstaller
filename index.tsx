@@ -1,27 +1,34 @@
 import { Notices } from "@api/index";
 import { addAccessory } from "@api/MessageAccessories";
 import { Devs } from "@utils/constants";
-import definePlugin from "@utils/types";
-import { Button, ChannelStore, Forms } from "@webpack/common";
+import definePlugin, { PluginNative } from "@utils/types";
+import { Button, ChannelStore, Forms, Toasts } from "@webpack/common";
 import { Message } from "discord-types/general";
+import { clone } from "lodash";
+import UserpluginInstallButton from "./UserpluginInstallButton";
 
-const WHITELISTED_SHARE_CHANNELS = ["1256395889354997771", "1032200195582197831"];
-const CLONE_LINK_REGEX = /(https:\/\/(?:git(?:hub|lab)\.com|git\.(?:[a-zA-Z0-9]|\.)+|codeberg\.org)\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+(?:\.git)?(?:\/)?)/;
+export const CLONE_LINK_REGEX = /https:\/\/(?:git(?:hub|lab)\.com|git\.(?:[a-zA-Z0-9]|\.)+|codeberg\.org)\/(?!user-attachments)(?:[a-zA-Z0-9]|-)+\/((?:[a-zA-Z0-9]|-)+)(?:\.git)?(?:\/)?/;
 
-function UserpluginInstallButton({ props }: any) {
-    const message: Message = props.message;
-    if (!WHITELISTED_SHARE_CHANNELS.includes(ChannelStore.getChannel(message.channel_id).parent_id) && !WHITELISTED_SHARE_CHANNELS.includes(message.channel_id))
-        return;
-    const gitLink = (props.message.content as string).match(CLONE_LINK_REGEX);
-    if (!gitLink) return;
-    return <Button style={{
-        marginTop: "5px"
-    }}
-        onClick={() => {
-            console.log(ChannelStore.getChannel(message.channel_id));
-        }}>
-        Install plugin
-    </Button>;
+// @ts-ignore
+const Native = VencordNative.pluginHelpers.UserpluginInstaller as PluginNative<typeof import("./native")>;
+
+export async function clonePlugin(gitLink: RegExpMatchArray) {
+    Toasts.show({
+        message: "Cloning plugin...",
+        id: Toasts.genId(),
+        type: Toasts.Type.MESSAGE
+    });
+    try {
+        const clonedRepo = await Native.cloneRepo(gitLink[0], `${VesktopNative.fileManager.getVencordDir().replace("\\", "/")}/../src/userplugins/${gitLink[1]}`);
+    }
+    catch (e) {
+        Toasts.pop();
+        return Toasts.show({
+            message: "Something bad has happened while cloning the plugin, try again later and make sure that the plugin link is valid.",
+            id: Toasts.genId(),
+            type: Toasts.Type.FAILURE
+        });
+    }
 }
 
 export default definePlugin({
