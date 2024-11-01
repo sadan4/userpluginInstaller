@@ -6,7 +6,7 @@ import { Button, ChannelStore, Forms } from "@webpack/common";
 import { Message } from "discord-types/general";
 
 const WHITELISTED_SHARE_CHANNELS = ["1256395889354997771", "1032200195582197831"];
-const CLONE_LINK_REGEX = /(https:\/\/(?:github\.com|git\.nin0\.dev|codeberg\.org)\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+(?:\.git)?(?:\/)?)/;
+const CLONE_LINK_REGEX = /(https:\/\/(?:git(?:hub|lab)\.com|git\.(?:[a-zA-Z0-9]|\.)+|codeberg\.org)\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+(?:\.git)?(?:\/)?)/;
 
 function UserpluginInstallButton({ props }: any) {
     const message: Message = props.message;
