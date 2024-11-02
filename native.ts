@@ -41,6 +41,7 @@ export async function getPluginMeta(_, path: string): Promise<any> {
 }
 
 export function deleteFolder(_, path: string) {
+    if(path.match(/\.\./g).length > 1) return;
     rmSync(path, { recursive: true, force: true });
 }
 
